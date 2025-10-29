@@ -56,8 +56,14 @@ jobs:
 
       - name: Deploy to Azure Container Apps
         run: |
+          az containerapp registry set \
+            --name test-ferry-spring-export-app \
+            --resource-group Test-Ferry-System \
+            --server testferryacr.azurecr.io \
+            --username ${{ secrets.ACR_USERNAME }} \
+            --password ${{ secrets.ACR_PASSWORD }}
+          
           az containerapp update \
             --name test-ferry-spring-export-app \
             --resource-group Test-Ferry-System \
-            --image testferryacr.azurecr.io/spring-export-app:${{ github.sha }} \
-            --registry-server testferryacr.azurecr.io
+            --image testferryacr.azurecr.io/spring-export-app:${{ github.sha }}

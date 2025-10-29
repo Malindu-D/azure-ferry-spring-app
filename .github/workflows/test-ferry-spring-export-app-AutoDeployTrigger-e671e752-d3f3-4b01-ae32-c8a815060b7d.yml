@@ -43,8 +43,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: testferryacr.azurecr.io
-          username: testferryacr
-          password: XtofNJlGTVF6KvNfXH7oGckeR6I26us9Ov1ObKU1ux+ACRBKVvUl
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4

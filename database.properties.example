@@ -1,0 +1,20 @@
+# Database Configuration File
+# Place this file in: C:\Users\malin\OneDrive\Desktop\test-fuction-app\database.properties
+
+# ⚠️ IMPORTANT: Use the SAME database as your Function App!
+# Your Function App uses Azure SQL Database with the 'People' table
+# This Spring app needs to connect to the SAME database to export that table
+
+# Azure SQL Server Configuration (same as your Function App)
+# Format: jdbc:sqlserver://YOUR_SERVER.database.windows.net:1433;database=DATABASE_NAME;encrypt=true;trustServerCertificate=false
+db.url=jdbc:sqlserver://your-server.database.windows.net:1433;database=PersonDatabase;encrypt=true;trustServerCertificate=false
+db.username=your-sql-admin-username
+db.password=your-sql-admin-password
+db.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+# NOTE: 
+# - Get these values from your Function App's SqlConnectionString in Azure Portal
+# - Server: Look for "Server=tcp:XXXXX.database.windows.net"
+# - Database: Look for "Initial Catalog=XXXXX" or "database=XXXXX"
+# - Username: Look for "User ID=XXXXX"
+# - Password: Look for "Password=XXXXX"

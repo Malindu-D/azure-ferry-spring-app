@@ -62,7 +62,12 @@ jobs:
             --server testferryacr.azurecr.io \
             --username ${{ secrets.ACR_USERNAME }} \
             --password ${{ secrets.ACR_PASSWORD }}
-          
+
+          az containerapp ingress update \
+            --name test-ferry-spring-export-app \
+            --resource-group Test-Ferry-System \
+            --target-port 8080
+
           az containerapp update \
             --name test-ferry-spring-export-app \
             --resource-group Test-Ferry-System \

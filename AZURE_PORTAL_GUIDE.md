@@ -1,6 +1,8 @@
-# Complete Azure Portal Setup Guide (No CLI Required)
+# Complete Azure Portal Setup Guide
 
-**Step-by-step guide using only the Azure Portal Console UI**
+**Step-by-step guide using primarily the Azure Portal Console UI**
+
+**Note:** While most steps use the Portal UI, deploying your JAR file requires Azure CLI. See Section 4 for both CLI and Portal deployment options.
 
 ---
 
@@ -293,34 +295,60 @@ This Spring application will connect to the **SAME database** that your Function
 
 ### Step 4.2: Deploy Application with Azure CLI
 
-The easiest way to deploy your JAR to Azure Container Apps is using the Azure CLI, which automatically handles containerization for you.
+**Option A: Direct JAR Deployment** (Requires Azure Container Registry access)
 
-1. **Install Azure CLI** (if not already installed)
+If you have ACR or cloud build access, use this simple command:
 
-   Download from: https://aka.ms/installazurecliwindows
+```powershell
+az containerapp up `
+  --name spring-export-app `
+  --resource-group rg-spring-export-app `
+  --location eastus `
+  --environment cae-spring-export `
+  --artifact target/spring-export-app-1.0.0.jar `
+  --ingress external `
+  --target-port 8080
+```
 
-   Or use PowerShell:
+**Option B: Container Image Deployment** (Recommended - More Reliable)
 
-   ```powershell
-   winget install Microsoft.AzureCLI
+If Option A fails with registry errors, use this approach:
+
+1. **Install Docker Desktop** (if not already installed)
+   
+   Download from: https://www.docker.com/products/docker-desktop/
+
+2. **Create Temporary Dockerfile**
+
+   Create a file named `Dockerfile` in your project root:
+
+   ```dockerfile
+   FROM eclipse-temurin:21-jre-alpine
+   WORKDIR /app
+   COPY target/spring-export-app-1.0.0.jar app.jar
+   EXPOSE 8080
+   ENTRYPOINT ["java", "-jar", "app.jar"]
    ```
 
-2. **Login to Azure**
-
+   Or use PowerShell to create it:
    ```powershell
-   az login
+   cd "C:\Users\malin\OneDrive\Desktop\test-spring-export-app"
+   @"
+   FROM eclipse-temurin:21-jre-alpine
+   WORKDIR /app
+   COPY target/spring-export-app-1.0.0.jar app.jar
+   EXPOSE 8080
+   ENTRYPOINT ["java", "-jar", "app.jar"]
+   "@ | Out-File -FilePath Dockerfile -Encoding ASCII
    ```
 
 3. **Build Your JAR** (if not already built)
 
    ```powershell
-   cd "C:\Users\malin\OneDrive\Desktop\test-spring-export-app"
    mvn clean package -DskipTests
    ```
 
-4. **Deploy to Container Apps**
-
-   This single command creates the Container App and deploys your JAR:
+4. **Deploy with Container Image**
 
    ```powershell
    az containerapp up `
@@ -328,20 +356,16 @@ The easiest way to deploy your JAR to Azure Container Apps is using the Azure CL
      --resource-group rg-spring-export-app `
      --location eastus `
      --environment cae-spring-export `
-     --artifact target/spring-export-app-1.0.0.jar `
+     --source . `
      --ingress external `
      --target-port 8080
    ```
 
-   **Command Explanation:**
-
-   - `--name`: Your app name
-   - `--resource-group`: Resource group created earlier
-   - `--location`: Same region as other resources
-   - `--environment`: Container Apps Environment from Step 4.1
-   - `--artifact`: Path to your JAR file (Azure CLI handles containerization automatically)
-   - `--ingress external`: Makes app accessible from internet
-   - `--target-port`: Port your Spring app runs on
+   This command will:
+   - Build a Docker image from your Dockerfile
+   - Create Azure Container Registry if needed (Basic tier)
+   - Push the image
+   - Deploy to Container Apps
 
 5. **Get Application URL**
 
@@ -355,6 +379,8 @@ The easiest way to deploy your JAR to Azure Container Apps is using the Azure CL
 
    You can also retrieve it later:
 
+   **Via Azure CLI:**
+
    ```powershell
    az containerapp show `
      --name spring-export-app `
@@ -362,6 +388,80 @@ The easiest way to deploy your JAR to Azure Container Apps is using the Azure CL
      --query properties.configuration.ingress.fqdn `
      --output tsv
    ```
+
+   **Via Azure Portal:**
+
+   - Navigate to your Container App **"spring-export-app"**
+   - Click **"Overview"**
+   - Copy the **Application Url** from the overview page
+
+### Step 4.3: Alternative - Create Container App via Portal UI (No CLI)
+
+If you prefer using the Azure Portal instead of Azure CLI:
+
+1. **Create Container App**
+
+   - Click **"Create a resource"**
+   - Search for **"Container App"**
+   - Click **"Create"**
+
+2. **Fill in Basics**
+
+   - **Subscription**: Your subscription
+   - **Resource group**: `rg-spring-export-app`
+   - **Container app name**: `spring-export-app`
+   - **Region**: Same region as other resources
+   - **Container Apps Environment**: Select `cae-spring-export` (the one you created in Step 4.1)
+   - Click **"Next: Container"**
+
+3. **Container Configuration**
+
+   - **Use quickstart image**: ✅ **Check** this box (for initial deployment)
+   - **Name**: `spring-export-app`
+   - **Image source**: **"Quick start image"**
+   - **Quickstart image**: Select **"Simple hello world container"**
+   - Click **"Next: Bindings"** → **"Next: Ingress"**
+
+4. **Ingress Settings** ⚠️ **IMPORTANT**
+
+   - **Ingress**: ✅ **Enabled**
+   - **Ingress traffic**: **"Accepting traffic from anywhere"**
+   - **Ingress type**: **"HTTP"**
+   - **Target port**: **`8080`** (your Spring Boot application port)
+   - **Transport**: **Auto**
+   - Click **"Next: Tags"** → **"Review + create"**
+   - Click **"Create"**
+   - Wait 2-3 minutes for deployment
+   - Click **"Go to resource"**
+
+5. **Get Application URL**
+
+   - In your Container App **"spring-export-app"**
+   - Click **"Overview"**
+   - Copy the **Application Url** (e.g., `https://spring-export-app.nicegrass-12345678.eastus.azurecontainerapps.io`)
+   - **📝 Save this URL** - This is your application endpoint
+
+6. **Update Container with Your JAR** (Requires Azure CLI)
+
+   Since the Portal method uses a quickstart image initially, you'll need Azure CLI for this one step to update it with your JAR:
+
+   ```powershell
+   # Install Azure CLI if needed
+   winget install Microsoft.AzureCLI
+
+   # Login and update
+   az login
+   az containerapp update `
+     --name spring-export-app `
+     --resource-group rg-spring-export-app `
+     --artifact target/spring-export-app-1.0.0.jar
+   ```
+
+   This will replace the hello-world container with your Spring Boot application.
+
+   **Alternative - Pure Portal UI (Advanced):** You can manually create a container image using Azure Container Instances or Azure App Service Build Service, but this is more complex. The CLI method above is recommended.
+
+**Note:** The Azure CLI method (Step 4.2) is simpler as it deploys your JAR directly in one command. The Portal method (Step 4.3) requires this extra Azure CLI update step for JAR deployment.
 
 ---
 
@@ -542,9 +642,9 @@ Now that your app is deployed, you need to configure it with the Azure resource 
 
 ---
 
-## 10. Monitoring & Troubleshooting
+## 8. Monitoring & Troubleshooting
 
-### View Application Logs
+### Step 8.1: View Application Logs
 
 1. **Real-time Logs**
 
@@ -564,14 +664,14 @@ Now that your app is deployed, you need to configure it with the Azure resource 
    | take 50
    ```
 
-### Common Issues
+### Step 8.2: Common Issues
 
 **Issue 1: Container App shows "Failed" status**
 
 - Go to **"Revision management"** → Check for errors
 - View **"Log stream"** for startup errors
-- Verify Docker image was pushed successfully to ACR
 - Check environment variables are set correctly
+- Verify JAR file was built successfully (`mvn clean package`)
 
 **Issue 2: Email not sending**
 

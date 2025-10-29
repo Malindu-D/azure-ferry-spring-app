@@ -47,3 +47,6 @@ jobs:
           containerAppName: test-ferry-spring-export-app
           resourceGroup: Test-Ferry-System
           imageToBuild: test-ferry-spring-export-app:${{ github.sha }}
+          acrName:
+          acrUsername: ${{ secrets.TESTFERRYSPRINGEXPORTAPP_REGISTRY_USERNAME }}
+          acrPassword: ${{ secrets.TESTFERRYSPRINGEXPORTAPP_REGISTRY_PASSWORD }}
